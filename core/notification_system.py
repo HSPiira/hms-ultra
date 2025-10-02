@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
+import logging
 
 from django.db import models
 from django.utils import timezone
@@ -16,6 +17,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from .models import Claim, Member, Hospital, Scheme, Company
+
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationType(Enum):
@@ -314,28 +318,70 @@ class AlertManager(IAlertManager):
             channels = self._get_channels_for_priority(priority)
             
             results = []
-            for channel in channels:
-                result = channel.send_notification(
-                    recipient=recipient,
-                    subject=self._get_subject_for_alert_type(alert_type),
-                    message=message,
-                    priority=priority
-                )
-                results.append(result)
+            successful_channels = []
+            failed_channels = []
             
-            return {
-                'success': True,
+            for channel in channels:
+                try:
+                    result = channel.send_notification(
+                        recipient=recipient,
+                        subject=self._get_subject_for_alert_type(alert_type),
+                        message=message,
+                        priority=priority
+                    )
+                    results.append(result)
+                    
+                    # Track success/failure per channel
+                    if result.get('success', False):
+                        successful_channels.append(result)
+                    else:
+                        failed_channels.append(result)
+                        
+                except Exception as channel_error:
+                    # Log individual channel exceptions but don't stop processing other channels
+                    logger.error(f"Channel {channel.__class__.__name__} failed: {str(channel_error)}")
+                    error_result = {
+                        'success': False,
+                        'channel': channel.__class__.__name__,
+                        'error': str(channel_error),
+                        'status': 'FAILED'
+                    }
+                    results.append(error_result)
+                    failed_channels.append(error_result)
+            
+            # Determine overall success: at least one channel must succeed
+            overall_success = len(successful_channels) > 0
+            
+            # Build response with detailed channel results
+            response = {
+                'success': overall_success,
                 'alert_type': alert_type.value,
                 'recipient': recipient,
                 'priority': priority.value,
-                'channels': results
+                'channels': results,
+                'successful_channels': len(successful_channels),
+                'failed_channels': len(failed_channels)
             }
             
+            # Add failure details if there were any failures
+            if failed_channels:
+                response['failed_channels'] = failed_channels
+                if not overall_success:
+                    response['error'] = 'All notification channels failed'
+                else:
+                    response['partial_failures'] = failed_channels
+            
+            return response
+            
         except Exception as e:
+            # Log the exception and propagate it
+            logger.error(f"Alert creation failed: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
-                'alert_type': alert_type.value
+                'alert_type': alert_type.value,
+                'recipient': recipient,
+                'priority': priority.value
             }
     
     def process_alert(self, alert_id: str) -> Dict[str, Any]:

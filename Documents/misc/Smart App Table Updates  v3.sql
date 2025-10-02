@@ -28,7 +28,7 @@ create table stg_claims
 Id number not null constraint pk_stg_claims primary key,
 cId varchar2(50) not null, 
 cindex number,
-channelid number,
+channelid number constraint fk_stg_claims_channel references Claim_channels(Id),
 schemeCode varchar2(20) not null, 
 providerCode varchar2(20) not null, 
 memberNumber varchar2(20) not null, 
@@ -86,7 +86,7 @@ commit;
 create table stg_claimsServices
 (
 Id number not null constraint pk_stg_claims_services primary key,
-claimId varchar2(50),
+claimId varchar2(50) constraint fk_stg_claims_services_claim references stg_claims(Id),
 serviceType varchar2(50),
 serviceCodeType varchar2(50),
 serviceCode varchar2(50),
@@ -136,11 +136,11 @@ Used to indicate uploads to Third parties that track records
 */
 create table service_item_uploads
 (
-id number(10),
+id number(10) not null constraint pk_service_item_uploads primary key,
 item_id number(10),
 item_code varchar(50),
-item_type number(10),/* 1=Members, 2=Schemes, 3=benefits*/
-channel_id number(10),
+item_type number(10) constraint fk_service_item_uploads_type references service_item_types(id),/* 1=Members, 2=Schemes, 3=benefits*/
+channel_id number(10) constraint fk_service_item_uploads_channel references Claim_channels(Id),
 state number(10), /* 0=Not Sent, 1=Sent, 3=Recieved*/
 created_date date,
 status varchar(5)
@@ -152,7 +152,7 @@ Used to Track the Types of the Item Types
 */
 create table service_item_types
 (
-id number(10),
+id number(10) not null constraint pk_service_item_types primary key,
 service_type_name varchar2(50),
 service_type_descr varchar2(250),
 status varchar(5)
