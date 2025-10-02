@@ -10,7 +10,8 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
 
-from django.db import transaction, models
+from django.db import transaction, models, IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import Claim, Member, Hospital, Scheme, ClaimDetail, ClaimPayment
@@ -229,7 +230,7 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
                 claimform_number=claim_data['claimform_number'],
                 invoice_number=claim_data['invoice_number'],
                 hospital_claimamount=claim_data['hospital_claimamount'],
-                transaction_status=ClaimWorkflowStatus.SUBMITTED.value,
+                # Status is determined by approved field (0 = submitted, 1 = approved)
                 created_by=claim_data.get('created_by', 'system')
             )
             
@@ -256,7 +257,7 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
                 'financials': financials
             }
             
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError, AttributeError) as e:
             return {
                 'success': False,
                 'error': str(e),
@@ -269,17 +270,17 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
         try:
             claim = Claim.objects.get(id=claim_id)
             
-            # Validate claim is in correct status
-            if claim.transaction_status != ClaimWorkflowStatus.UNDER_REVIEW.value:
+            # Validate claim is in correct status (using existing approved field)
+            if claim.approved == 1:
                 return {
                     'success': False,
-                    'error': f'Claim must be under review to approve. Current status: {claim.transaction_status}'
+                    'error': 'Claim is already approved'
                 }
             
-            # Update claim status
-            claim.transaction_status = ClaimWorkflowStatus.APPROVED.value
-            claim.approved_by = approver_id
-            claim.approved_date = timezone.now()
+            # Update claim status using existing fields
+            claim.approved = 1  # Use existing approved field
+            # Store approver info in claimformcomments field (existing field)
+            claim.claimformcomments = f"Approved by {approver_id} on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
             claim.save()
             
             # Notify stakeholders
@@ -304,11 +305,9 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
         try:
             claim = Claim.objects.get(id=claim_id)
             
-            # Update claim status
-            claim.transaction_status = ClaimWorkflowStatus.REJECTED.value
-            claim.rejected_by = rejector_id
-            claim.rejected_date = timezone.now()
-            claim.rejection_reason = reason
+            # Update claim status using existing fields
+            # Store rejection info in claimformcomments field
+            claim.claimformcomments = f"Rejected by {rejector_id} on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}: {reason}"
             claim.save()
             
             # Notify stakeholders
@@ -334,11 +333,11 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
         try:
             claim = Claim.objects.get(id=claim_id)
             
-            # Validate claim is approved
-            if claim.transaction_status != ClaimWorkflowStatus.APPROVED.value:
+            # Validate claim is approved using existing approved field
+            if claim.approved != 1:
                 return {
                     'success': False,
-                    'error': f'Claim must be approved to process payment. Current status: {claim.transaction_status}'
+                    'error': f'Claim must be approved to process payment. Current status: {"SUBMITTED" if claim.approved == 0 else "UNKNOWN"}'
                 }
             
             # Process payment using business logic
@@ -350,9 +349,9 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
             if not payment_result['success']:
                 return payment_result
             
-            # Update claim status
-            claim.transaction_status = ClaimWorkflowStatus.PAID.value
-            claim.paid_date = timezone.now()
+            # Update claim status using existing fields
+            # Store payment info in claimformcomments field
+            claim.claimformcomments = f"{claim.claimformcomments} | Paid on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
             claim.save()
             
             # Notify stakeholders
@@ -441,11 +440,11 @@ class ClaimWorkflowService:
             
             return {
                 'claim_id': claim_id,
-                'status': claim.transaction_status,
+                'status': 'APPROVED' if claim.approved == 1 else 'SUBMITTED',
                 'stage': self._determine_workflow_stage(claim),
-                'submitted_date': claim.created_date,
-                'approved_date': claim.approved_date,
-                'paid_date': claim.paid_date,
+                'submitted_date': claim.created_at,  # Use existing created_at field
+                'approved_date': claim.claimformcomments if claim.approved == 1 else None,  # Extract from comments
+                'paid_date': None,  # TODO: Add payment tracking field
                 'amount': claim.hospital_claimamount,
                 'benefit_amount': claim.member_claimamount
             }
@@ -457,20 +456,11 @@ class ClaimWorkflowService:
     
     def _determine_workflow_stage(self, claim: Claim) -> str:
         """Determine current workflow stage based on claim status"""
-        status = claim.transaction_status
-        
-        if status == ClaimWorkflowStatus.SUBMITTED.value:
-            return ClaimWorkflowStage.DATA_VALIDATION.value
-        elif status == ClaimWorkflowStatus.VALIDATED.value:
-            return ClaimWorkflowStage.BUSINESS_RULE_VALIDATION.value
-        elif status == ClaimWorkflowStatus.UNDER_REVIEW.value:
-            return ClaimWorkflowStage.MANUAL_REVIEW.value
-        elif status == ClaimWorkflowStatus.APPROVED.value:
+        # Use existing approved field to determine stage
+        if claim.approved == 1:
             return ClaimWorkflowStage.APPROVAL.value
-        elif status == ClaimWorkflowStatus.PAID.value:
-            return ClaimWorkflowStage.COMPLETION.value
         else:
-            return ClaimWorkflowStage.INITIAL_SUBMISSION.value
+            return ClaimWorkflowStage.DATA_VALIDATION.value
 
 
 # =============================================================================
