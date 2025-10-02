@@ -12,7 +12,8 @@ from enum import Enum
 import json
 import logging
 
-from django.db import models
+from django.db import models, IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -178,7 +179,7 @@ class AuditLogger(IAuditLogger):
                 'message': 'Audit event logged successfully'
             }
             
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             logger.error(f"Failed to log audit event: {str(e)}")
             return {
                 'success': False,
@@ -211,11 +212,17 @@ class AuditLogger(IAuditLogger):
                 'message': 'Security event logged successfully'
             }
             
-        except Exception as e:
-            logger.error(f"Failed to log security event: {str(e)}")
+        except (ValueError, IntegrityError, ValidationError) as e:
+            logger.error(f"Validation or database error logging security event: {str(e)}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Validation or database error: {str(e)}'
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error logging security event: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}'
             }
 
 
@@ -244,8 +251,14 @@ class AuditQuery(IAuditQuery):
                 }
             ]
             
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid parameters for audit trail query: {str(e)}")
+            return []
+        except (ValueError, IntegrityError, ValidationError) as e:
+            logger.error(f"Validation or database error getting audit trail: {str(e)}")
+            return []
         except Exception as e:
-            logger.error(f"Failed to get audit trail: {str(e)}")
+            logger.error(f"Unexpected error getting audit trail: {str(e)}")
             return []
     
     def get_user_audit_trail(
@@ -271,8 +284,14 @@ class AuditQuery(IAuditQuery):
                 }
             ]
             
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid parameters for user audit trail query: {str(e)}")
+            return []
+        except (ValueError, IntegrityError, ValidationError) as e:
+            logger.error(f"Validation or database error getting user audit trail: {str(e)}")
+            return []
         except Exception as e:
-            logger.error(f"Failed to get user audit trail: {str(e)}")
+            logger.error(f"Unexpected error getting user audit trail: {str(e)}")
             return []
     
     def get_audit_summary(
@@ -305,10 +324,20 @@ class AuditQuery(IAuditQuery):
                 }
             }
             
-        except Exception as e:
-            logger.error(f"Failed to get audit summary: {str(e)}")
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid parameters for audit summary query: {str(e)}")
             return {
-                'error': str(e)
+                'error': f'Invalid parameters: {str(e)}'
+            }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            logger.error(f"Validation or database error getting audit summary: {str(e)}")
+            return {
+                'error': f'Validation or database error: {str(e)}'
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error getting audit summary: {str(e)}")
+            return {
+                'error': f'Unexpected error: {str(e)}'
             }
 
 
@@ -330,8 +359,11 @@ class AuditExporter(IAuditExporter):
             else:
                 return f"Export format {format_type} not supported"
                 
+        except (ValueError, IntegrityError, ValidationError) as e:
+            logger.error(f"Validation or database error exporting audit trail: {str(e)}")
+            return f"Export failed - validation error: {str(e)}"
         except Exception as e:
-            logger.error(f"Failed to export audit trail: {str(e)}")
+            logger.error(f"Unexpected error exporting audit trail: {str(e)}")
             return f"Export failed: {str(e)}"
     
     def _export_to_csv(self, start_date: date, end_date: date) -> str:

@@ -11,7 +11,8 @@ from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
 import logging
 
-from django.db import models
+from django.db import models, IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
@@ -373,12 +374,21 @@ class AlertManager(IAlertManager):
             
             return response
             
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid parameters for alert creation: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Invalid parameters: {str(e)}',
+                'alert_type': alert_type.value,
+                'recipient': recipient,
+                'priority': priority.value
+            }
         except Exception as e:
             # Log the exception and propagate it
             logger.error(f"Alert creation failed: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': f'Unexpected error: {str(e)}',
                 'alert_type': alert_type.value,
                 'recipient': recipient,
                 'priority': priority.value
@@ -470,10 +480,15 @@ class NotificationService:
                 'success': False,
                 'error': 'Claim not found'
             }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def notify_claim_approved(self, claim_id: str) -> Dict[str, Any]:
@@ -504,10 +519,15 @@ class NotificationService:
                 'success': False,
                 'error': 'Claim not found'
             }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def notify_claim_rejected(self, claim_id: str, reason: str) -> Dict[str, Any]:
@@ -538,10 +558,15 @@ class NotificationService:
                 'success': False,
                 'error': 'Claim not found'
             }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def notify_member_enrolled(self, member_id: str) -> Dict[str, Any]:
@@ -572,10 +597,15 @@ class NotificationService:
                 'success': False,
                 'error': 'Member not found'
             }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def notify_provider_registered(self, provider_id: str) -> Dict[str, Any]:
@@ -606,10 +636,15 @@ class NotificationService:
                 'success': False,
                 'error': 'Provider not found'
             }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def send_system_alert(
