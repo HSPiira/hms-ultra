@@ -255,10 +255,10 @@ class ProviderPricingManager(IProviderPricingManager):
                 'success': False,
                 'error': f'Validation or database error: {str(e)}'
             }
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError, AttributeError) as e:
             return {
                 'success': False,
-                'error': f'Unexpected error: {str(e)}'
+                'error': f'Operation failed: {str(e)}'
             }
     
     def validate_pricing_agreement(
@@ -347,10 +347,10 @@ class ProviderServiceManager(IProviderServiceManager):
                 'success': False,
                 'error': f'Validation or database error: {str(e)}'
             }
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError, AttributeError) as e:
             return {
                 'success': False,
-                'error': f'Unexpected error: {str(e)}'
+                'error': f'Operation failed: {str(e)}'
             }
     
     def remove_service_from_provider(
@@ -385,10 +385,10 @@ class ProviderServiceManager(IProviderServiceManager):
                 'success': False,
                 'error': f'Validation or database error: {str(e)}'
             }
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError, AttributeError) as e:
             return {
                 'success': False,
-                'error': f'Unexpected error: {str(e)}'
+                'error': f'Operation failed: {str(e)}'
             }
     
     def get_provider_services(self, provider_id: str) -> List[Dict[str, Any]]:
@@ -478,10 +478,10 @@ class ProviderLifecycleManager(IProviderLifecycleManager):
                 'success': False,
                 'error': f'Validation or database error: {str(e)}'
             }
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError, AttributeError) as e:
             return {
                 'success': False,
-                'error': f'Unexpected error: {str(e)}'
+                'error': f'Operation failed: {str(e)}'
             }
     
     @transaction.atomic
@@ -524,10 +524,10 @@ class ProviderLifecycleManager(IProviderLifecycleManager):
                     'error': 'Provider is already inactive'
                 }
             
-            # Update status
+            # Update status and use existing fields for tracking
             provider.status = 'INACTIVE'
-            provider.deactivation_reason = reason
-            provider.deactivation_date = timezone.now()
+            # Store reason in hospital_remarks field (existing field)
+            provider.hospital_remarks = f"Deactivated: {reason} on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
             provider.save()
             
             return {
@@ -555,10 +555,10 @@ class ProviderLifecycleManager(IProviderLifecycleManager):
                     'error': f'Only active providers can be suspended. Current status: {provider.status}'
                 }
             
-            # Update status
+            # Update status and use existing fields for tracking
             provider.status = 'SUSPENDED'
-            provider.suspension_reason = reason
-            provider.suspension_date = timezone.now()
+            # Store reason in hospital_remarks field (existing field)
+            provider.hospital_remarks = f"Suspended: {reason} on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
             provider.save()
             
             return {
