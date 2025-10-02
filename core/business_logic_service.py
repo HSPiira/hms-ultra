@@ -7,8 +7,12 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, List, Optional
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .business_rules import (
     BusinessRulesFactory, ClaimBusinessRules, ClaimBusinessRuleService
@@ -78,10 +82,16 @@ class HMSBusinessLogicService:
                 'validation_results': validation_result.get('validation_results', [])
             }
             
-        except Exception as e:
+        except (ValueError, IntegrityError, ValidationError) as e:
             return {
                 'success': False,
-                'message': f'Claim processing failed: {str(e)}'
+                'message': f'Validation or database error: {str(e)}'
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in claim processing: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Unexpected error occurred: {str(e)}'
             }
     
     def validate_claim_eligibility(self, claim_data: Dict[str, Any]) -> Dict[str, Any]:
