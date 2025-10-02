@@ -23,7 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 class AuditAction(Enum):
-    """Audit action enumeration"""
+    """
+    Audit action enumeration.
+    
+    Defines all possible actions that can be audited in the system.
+    Used to categorize different types of user and system activities.
+    """
     CREATE = "CREATE"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
@@ -38,7 +43,12 @@ class AuditAction(Enum):
 
 
 class AuditLevel(Enum):
-    """Audit level enumeration"""
+    """
+    Audit level enumeration.
+    
+    Defines the severity levels for audit events.
+    Used to categorize the importance and urgency of audit entries.
+    """
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
@@ -46,7 +56,12 @@ class AuditLevel(Enum):
 
 
 class AuditStatus(Enum):
-    """Audit status enumeration"""
+    """
+    Audit status enumeration.
+    
+    Defines the possible outcomes of audited actions.
+    Used to track whether an action completed successfully or failed.
+    """
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
     PENDING = "PENDING"

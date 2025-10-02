@@ -10,7 +10,8 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
 
-from django.db import transaction, models
+from django.db import transaction, models, IntegrityError
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import (
@@ -336,10 +337,15 @@ class ProviderServiceManager(IProviderServiceManager):
                 'hospital_service_id': str(hospital_service.id)
             }
             
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def remove_service_from_provider(
@@ -369,10 +375,15 @@ class ProviderServiceManager(IProviderServiceManager):
                 'message': 'Service removed from provider successfully'
             }
             
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def get_provider_services(self, provider_id: str) -> List[Dict[str, Any]]:

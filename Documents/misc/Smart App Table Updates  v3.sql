@@ -4,7 +4,7 @@ CHANNELS WHERE THE CLAIMS ARE ARRIVING
 */
 create table Claim_channels
 (
-Id number not null, 
+Id number not null constraint pk_claim_channels primary key, 
 Channel_name varchar2(100),
 Channel_desc varchar2(500),
 status varchar2(10)
@@ -25,7 +25,7 @@ STAGING TABLE FOR CLAIMS ARRIVING
 */
 create table stg_claims
 (
-Id number not null,
+Id number not null constraint pk_stg_claims primary key,
 cId varchar2(50) not null, 
 cindex number,
 channelid number,
@@ -85,7 +85,7 @@ commit;
 */
 create table stg_claimsServices
 (
-Id number not null,
+Id number not null constraint pk_stg_claims_services primary key,
 claimId varchar2(50),
 serviceType varchar2(50),
 serviceCodeType varchar2(50),
