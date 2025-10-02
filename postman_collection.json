@@ -1,0 +1,646 @@
+{
+  "info": {
+    "name": "HMS API Collection",
+    "description": "Hospital Management System - Complete API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-login if no token exists",
+          "if (!pm.environment.get('token')) {",
+          "    const loginRequest = {",
+          "        url: pm.environment.get('api_base') + '/token/',",
+          "        method: 'POST',",
+          "        header: {",
+          "            'Content-Type': 'application/json'",
+          "        },",
+          "        body: {",
+          "            mode: 'raw',",
+          "            raw: JSON.stringify({",
+          "                'username': 'admin',",
+          "                'password': 'admin'",
+          "            })",
+          "        }",
+          "    };",
+          "    ",
+          "    pm.sendRequest(loginRequest, function (err, response) {",
+          "        if (response && response.json() && response.json().access) {",
+          "            pm.environment.set('token', response.json().access);",
+          "        }",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"piira\",\n  \"password\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/token/",
+              "host": ["{{api_base}}"],
+              "path": ["token", ""]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/token/refresh/",
+              "host": ["{{api_base}}"],
+              "path": ["token", "refresh", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "List Companies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/companies/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["companies", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_name\": \"Acme Healthcare Ltd\",\n  \"contact_person\": \"John Smith\",\n  \"company_address\": \"123 Healthcare Street, Medical District, Nairobi\",\n  \"phone_number\": \"+254-20-1234567\",\n  \"email\": \"info@acmehealthcare.com\",\n  \"website\": \"https://www.acmehealthcare.com\",\n  \"remarks\": \"Additional company notes\",\n  \"location\": \"Nairobi, Kenya\",\n  \"district_id\": 1,\n  \"currentupdate\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/companies/",
+              "host": ["{{api_base}}"],
+              "path": ["companies", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Company",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/companies/{company_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["companies", "{company_id}", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_name\": \"Updated Company Name\",\n  \"contact_person\": \"Jane Doe\",\n  \"currentupdate\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/companies/{company_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["companies", "{company_id}", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{api_base}}/companies/{company_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["companies", "{company_id}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List Members",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/members/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["members", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_name\": \"John Doe\",\n  \"company\": \"company_id_here\",\n  \"scheme\": \"scheme_id_here\",\n  \"employee_id\": \"EMP001\",\n  \"national_id\": \"12345678\",\n  \"gender\": \"MALE\",\n  \"date_of_birth\": \"1990-01-01\",\n  \"marital_status\": \"SINGLE\",\n  \"blood_group\": \"O+\",\n  \"postal_address\": \"P.O. Box 123, Nairobi\",\n  \"physical_address\": \"123 Main Street, Nairobi\",\n  \"phone_home\": \"+254-20-1234567\",\n  \"phone_mobile\": \"+254-700-123456\",\n  \"email\": \"john.doe@example.com\",\n  \"emergency_contact\": \"Jane Doe\",\n  \"emergency_phone\": \"+254-700-987654\",\n  \"card_number\": \"CARD001\",\n  \"date_of_joining\": \"2024-01-01\",\n  \"member_status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/members/",
+              "host": ["{{api_base}}"],
+              "path": ["members", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Member",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/members/{member_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["members", "{member_id}", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Member",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member_name\": \"Updated Name\",\n  \"phone_mobile\": \"+254-700-999999\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/members/{member_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["members", "{member_id}", ""]
+            }
+          }
+        },
+        {
+          "name": "Activate Member",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{api_base}}/members/{member_id}/activate/",
+              "host": ["{{api_base}}"],
+              "path": ["members", "{member_id}", "activate", ""]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Member",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{api_base}}/members/{member_id}/deactivate/",
+              "host": ["{{api_base}}"],
+              "path": ["members", "{member_id}", "deactivate", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schemes",
+      "item": [
+        {
+          "name": "List Schemes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/schemes/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["schemes", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Scheme",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheme_name\": \"Premium Health Scheme\",\n  \"description\": \"Comprehensive health coverage\",\n  \"limit_value\": 100000.00,\n  \"company\": \"company_id_here\",\n  \"familystatus\": 1,\n  \"beginningdate\": \"2024-01-01\",\n  \"endingdate\": \"2024-12-31\",\n  \"terminationdate\": null,\n  \"termination\": 0,\n  \"numberofdays\": 365,\n  \"card_code\": \"PREMIUM\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/schemes/",
+              "host": ["{{api_base}}"],
+              "path": ["schemes", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Scheme",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/schemes/{scheme_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["schemes", "{scheme_id}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hospitals",
+      "item": [
+        {
+          "name": "List Hospitals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/hospitals/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["hospitals", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Hospital",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hospital_reference\": \"HOSP001\",\n  \"hospital_name\": \"Nairobi Hospital\",\n  \"hospital_address\": \"Argwings Kodhek Road, Nairobi\",\n  \"contact_person\": \"Dr. Jane Smith\",\n  \"outpatient_capacity\": 500,\n  \"inpatient_capacity\": 200,\n  \"district_id\": 1,\n  \"hospital_email\": \"info@nairobi-hospital.com\",\n  \"hospital_website\": \"https://www.nairobi-hospital.com\",\n  \"hospital_remarks\": \"Leading private hospital\",\n  \"hospital_phone_number\": \"+254-20-2846000\",\n  \"outorinpatient\": \"BOTH\",\n  \"dental\": \"YES\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/hospitals/",
+              "host": ["{{api_base}}"],
+              "path": ["hospitals", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Hospital",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/hospitals/{hospital_id}/",
+              "host": ["{{api_base}}"],
+              "path": ["hospitals", "{hospital_id}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Member Dependants",
+      "item": [
+        {
+          "name": "List Member Dependants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/member-dependants/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["member-dependants", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "member",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Member Dependant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member\": \"member_id_here\",\n  \"dependant_name\": \"Jane Doe\",\n  \"gender\": \"FEMALE\",\n  \"dateofbirth\": \"1995-05-15\",\n  \"relationship\": \"SPOUSE\",\n  \"bloodgroup\": \"A+\",\n  \"postal_address\": \"P.O. Box 123, Nairobi\",\n  \"telhome\": \"+254-20-1234567\",\n  \"telmobile\": \"+254-700-123456\",\n  \"nextofkin\": \"John Doe\",\n  \"depcardno\": \"DEP001\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/member-dependants/",
+              "host": ["{{api_base}}"],
+              "path": ["member-dependants", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medical Catalog",
+      "item": [
+        {
+          "name": "List Medicines",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/medicines/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["medicines", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Medicine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicineid\": \"MED001\",\n  \"medicinereferenceno\": \"REF001\",\n  \"medicinename\": \"Paracetamol 500mg\",\n  \"dosageform\": \"Tablet\",\n  \"unitprice\": 5.00,\n  \"unitsinstock\": 1000,\n  \"reorderlevel\": 100,\n  \"additionalnotes\": \"Pain relief medication\",\n  \"dosage\": \"500mg\",\n  \"route\": \"Oral\",\n  \"duration\": \"As needed\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/medicines/",
+              "host": ["{{api_base}}"],
+              "path": ["medicines", ""]
+            }
+          }
+        },
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/services/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["services", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_code\": \"SVC001\",\n  \"service_name\": \"General Consultation\",\n  \"service_category\": \"Consultation\",\n  \"description\": \"General medical consultation\",\n  \"base_amount\": 2000.00,\n  \"service_type\": \"OUTPATIENT\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/services/",
+              "host": ["{{api_base}}"],
+              "path": ["services", ""]
+            }
+          }
+        },
+        {
+          "name": "List Lab Tests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/lab-tests/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["lab-tests", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Lab Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"test_code\": \"LAB001\",\n  \"test_name\": \"Complete Blood Count\",\n  \"test_category\": \"Hematology\",\n  \"description\": \"Full blood count test\",\n  \"base_amount\": 1500.00,\n  \"normal_range\": \"4.5-11.0 x 10^9/L\",\n  \"units\": \"cells/L\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/lab-tests/",
+              "host": ["{{api_base}}"],
+              "path": ["lab-tests", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claims",
+      "item": [
+        {
+          "name": "List Claims",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{api_base}}/claims/?limit=50&offset=0",
+              "host": ["{{api_base}}"],
+              "path": ["claims", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"member\": \"member_id_here\",\n  \"member_name\": \"John Doe\",\n  \"cardno\": \"CARD001\",\n  \"hospital\": \"hospital_id_here\",\n  \"hospital_name\": \"Nairobi Hospital\",\n  \"service_date\": \"2024-01-15\",\n  \"servicetype\": \"OUTPATIENT\",\n  \"outorinpatienttransaction\": \"OUTPATIENT\",\n  \"hospital_claimamount\": 5000.00,\n  \"member_claimamount\": 5000.00,\n  \"amountpaid\": 0.00,\n  \"invoice_number\": \"INV001\",\n  \"claimform_number\": \"CF001\",\n  \"transaction_status\": \"PENDING\"\n}"
+            },
+            "url": {
+              "raw": "{{api_base}}/claims/",
+              "host": ["{{api_base}}"],
+              "path": ["claims", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
