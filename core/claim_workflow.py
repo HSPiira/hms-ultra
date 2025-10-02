@@ -14,12 +14,17 @@ from django.db import transaction, models
 from django.utils import timezone
 
 from .models import Claim, Member, Hospital, Scheme, ClaimDetail, ClaimPayment
-from .business_rules import get_business_logic_service
+from .business_logic_service import get_business_logic_service
 from .smart_api_service import SmartAPIServiceFactory
 
 
 class ClaimWorkflowStatus(Enum):
-    """Claim workflow status enumeration"""
+    """
+    Claim workflow status enumeration.
+    
+    Defines all possible states a claim can be in during its lifecycle.
+    Used to track the progress of claims through the approval process.
+    """
     SUBMITTED = "SUBMITTED"
     VALIDATED = "VALIDATED"
     UNDER_REVIEW = "UNDER_REVIEW"
@@ -31,7 +36,12 @@ class ClaimWorkflowStatus(Enum):
 
 
 class ClaimWorkflowStage(Enum):
-    """Claim workflow stage enumeration"""
+    """
+    Claim workflow stage enumeration.
+    
+    Defines the different stages a claim goes through during processing.
+    Used to organize the workflow and determine next steps.
+    """
     INITIAL_SUBMISSION = "INITIAL_SUBMISSION"
     DATA_VALIDATION = "DATA_VALIDATION"
     BUSINESS_RULE_VALIDATION = "BUSINESS_RULE_VALIDATION"

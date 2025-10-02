@@ -250,10 +250,15 @@ class ProviderPricingManager(IProviderPricingManager):
                 'new_price': new_price
             }
             
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     def validate_pricing_agreement(
@@ -468,10 +473,15 @@ class ProviderLifecycleManager(IProviderLifecycleManager):
                 'smart_api_result': smart_api_result
             }
             
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
         except Exception as e:
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Unexpected error: {str(e)}'
             }
     
     @transaction.atomic
