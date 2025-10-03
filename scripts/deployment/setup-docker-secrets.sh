@@ -32,8 +32,8 @@ fi
 echo "Creating Docker secrets..."
 
 # PostgreSQL secrets
-docker secret create postgres_db "hms_ultra" 2>/dev/null || echo "postgres_db secret already exists"
-docker secret create postgres_user "hms_user" 2>/dev/null || echo "postgres_user secret already exists"
+echo -n "hms_ultra" | docker secret create postgres_db - 2>/dev/null || echo "postgres_db secret already exists"
+echo -n "hms_user" | docker secret create postgres_user - 2>/dev/null || echo "postgres_user secret already exists"
 docker secret create postgres_password secrets/postgres_password 2>/dev/null || echo "postgres_password secret already exists"
 
 # Django secrets
