@@ -397,26 +397,38 @@ class ClaimWorkflowProcessor(IClaimWorkflowProcessor):
 class ClaimWorkflowNotifier(IClaimWorkflowNotifier):
     """Handles claim workflow notifications"""
     
+    def __init__(self):
+        from core.services.notification_system import NotificationServiceFactory
+        self.notification_service = NotificationServiceFactory.create_notification_service()
+    
     def notify_claim_submitted(self, claim_id: str) -> None:
         """Notify stakeholders of claim submission"""
-        # TODO: Implement actual notification logic
-        # This could include email, SMS, in-app notifications, etc.
-        print(f"Notification: Claim {claim_id} has been submitted")
+        try:
+            self.notification_service.notify_claim_submitted(claim_id)
+        except Exception as e:
+            logger.exception(f"Failed to send claim submitted notification for {claim_id}: {e}")
     
     def notify_claim_approved(self, claim_id: str) -> None:
         """Notify stakeholders of claim approval"""
-        # TODO: Implement actual notification logic
-        print(f"Notification: Claim {claim_id} has been approved")
+        try:
+            self.notification_service.notify_claim_approved(claim_id)
+        except Exception as e:
+            logger.exception(f"Failed to send claim approved notification for {claim_id}: {e}")
     
     def notify_claim_rejected(self, claim_id: str, reason: str) -> None:
         """Notify stakeholders of claim rejection"""
-        # TODO: Implement actual notification logic
-        print(f"Notification: Claim {claim_id} has been rejected. Reason: {reason}")
+        try:
+            self.notification_service.notify_claim_rejected(claim_id, reason)
+        except Exception as e:
+            logger.exception(f"Failed to send claim rejected notification for {claim_id}: {e}")
     
     def notify_claim_paid(self, claim_id: str) -> None:
         """Notify stakeholders of claim payment"""
-        # TODO: Implement actual notification logic
-        print(f"Notification: Claim {claim_id} has been paid")
+        try:
+            # Use approved template as a placeholder or extend notification system with a paid notifier
+            self.notification_service.notify_claim_approved(claim_id)
+        except Exception as e:
+            logger.exception(f"Failed to send claim paid notification for {claim_id}: {e}")
 
 
 # =============================================================================
