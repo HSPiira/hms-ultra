@@ -215,9 +215,26 @@ class Hospital(CuidModel, TimeStampedModel):
     outorinpatient = models.CharField(max_length=20, blank=True)
     dental = models.CharField(max_length=10, choices=YesNoChoices.choices, default=YesNoChoices.NO)
     status = models.CharField(max_length=20, choices=StatusChoices.choices, default=StatusChoices.ACTIVE)
+    created_by = models.CharField(max_length=100, blank=True)  # User who created/owns this hospital
 
     class Meta:
         db_table = 'nm_hospitals'
+
+
+class HospitalStaff(CuidModel, TimeStampedModel):
+    """Model for hospital staff associations"""
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, related_name='staff')
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='hospital_staff')
+    role = models.CharField(max_length=50, default='STAFF')  # STAFF, ADMIN, MANAGER, etc.
+    is_active = models.BooleanField(default=True)
+    joined_date = models.DateField(auto_now_add=True)
+    notes = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        db_table = 'nm_hospital_staff'
+        constraints = [
+            models.UniqueConstraint(fields=['hospital', 'user'], name='uq_hospital_user_staff')
+        ]
 
 
 class HospitalBranch(CuidModel, TimeStampedModel):
