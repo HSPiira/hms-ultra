@@ -1,0 +1,62 @@
+# Django and Core Dependencies
+Django==5.2.7
+djangorestframework==3.15.2
+django-cors-headers==4.3.1
+django-filter==24.2
+django-extensions==3.2.3
+
+# Authentication and Security
+djangorestframework-simplejwt==5.3.0
+django-oauth-toolkit==1.7.1
+django-ratelimit==4.1.0
+
+# API Documentation
+drf-spectacular==0.27.0
+drf-spectacular-sidecar==2024.1.1
+
+# Database
+psycopg2-binary==2.9.9
+django-redis==5.4.0
+
+# Task Queue
+celery==5.3.6
+django-celery-beat==2.5.0
+django-celery-results==2.5.1
+
+# Monitoring and Logging
+django-health-check==3.17.0
+sentry-sdk==1.40.6
+structlog==23.2.0
+
+# Email and Notifications
+django-anymail==10.2
+twilio==8.10.3
+
+# File Processing
+openpyxl==3.1.2
+pandas==2.1.4
+Pillow==10.2.0
+
+# Development and Testing
+pytest==7.4.4
+pytest-django==4.7.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==22.0.0
+
+# Code Quality
+black==23.12.1
+flake8==7.0.0
+isort==5.13.2
+mypy==1.8.0
+bandit==1.7.5
+safety==3.0.1
+
+# Production Server
+gunicorn==21.2.0
+whitenoise==6.6.0
+
+# Utilities
+python-decouple==3.8
+django-environ==0.11.2
+cuid2==0.2.0
