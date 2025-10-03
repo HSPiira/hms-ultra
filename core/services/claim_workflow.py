@@ -13,11 +13,13 @@ from enum import Enum
 from django.db import transaction, models, IntegrityError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+import logging
 
 from core.models import Claim, Member, Hospital, Scheme, ClaimDetail, ClaimPayment
 from core.services.business_logic_service import get_business_logic_service
 from core.services.smart_api_service import SmartAPIServiceFactory
 
+logger = logging.getLogger(__name__)
 
 class ClaimWorkflowStatus(Enum):
     """
@@ -405,30 +407,30 @@ class ClaimWorkflowNotifier(IClaimWorkflowNotifier):
         """Notify stakeholders of claim submission"""
         try:
             self.notification_service.notify_claim_submitted(claim_id)
-        except Exception as e:
-            logger.exception(f"Failed to send claim submitted notification for {claim_id}: {e}")
+        except Exception:
+            logger.exception(f"Failed to send claim submitted notification for {claim_id}")
     
     def notify_claim_approved(self, claim_id: str) -> None:
         """Notify stakeholders of claim approval"""
         try:
             self.notification_service.notify_claim_approved(claim_id)
-        except Exception as e:
-            logger.exception(f"Failed to send claim approved notification for {claim_id}: {e}")
+        except Exception:
+            logger.exception(f"Failed to send claim approved notification for {claim_id}")
     
     def notify_claim_rejected(self, claim_id: str, reason: str) -> None:
         """Notify stakeholders of claim rejection"""
         try:
             self.notification_service.notify_claim_rejected(claim_id, reason)
-        except Exception as e:
-            logger.exception(f"Failed to send claim rejected notification for {claim_id}: {e}")
+        except Exception:
+            logger.exception(f"Failed to send claim rejected notification for {claim_id}")
     
     def notify_claim_paid(self, claim_id: str) -> None:
         """Notify stakeholders of claim payment"""
         try:
             # Use approved template as a placeholder or extend notification system with a paid notifier
             self.notification_service.notify_claim_approved(claim_id)
-        except Exception as e:
-            logger.exception(f"Failed to send claim paid notification for {claim_id}: {e}")
+        except Exception:
+            logger.exception(f"Failed to send claim paid notification for {claim_id}")
 
 
 # =============================================================================

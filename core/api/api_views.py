@@ -743,10 +743,19 @@ def generate_report(request):
         start_date = v.get('start_date')
         end_date = v.get('end_date')
 
+        report_type_map = {
+            'CLAIMS': ReportType.CLAIMS_SUMMARY,
+            'MEMBERS': ReportType.MEMBER_ANALYTICS,
+            'PROVIDERS': ReportType.PROVIDER_ANALYTICS,
+            'FINANCIAL': ReportType.FINANCIAL_SUMMARY,
+        }
         try:
-            report_type_enum = ReportType(report_type_value)
-        except Exception:
-            return Response({'success': False, 'error': f"Invalid report_type '{report_type_value}'"}, status=status.HTTP_400_BAD_REQUEST)
+            report_type_enum = report_type_map[report_type_value]
+        except KeyError:
+            return Response(
+                {'success': False, 'error': f"Invalid report_type '{report_type_value}'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             format_enum = ReportFormat(format_value)
         except Exception:

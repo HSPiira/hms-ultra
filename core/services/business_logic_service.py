@@ -67,7 +67,13 @@ class HMSBusinessLogicService:
             # 2. Apply business rules
             validation_result = self.claim_service.validate_and_process_claim(claim_data)
             if not validation_result['success']:
-                return OperationResult.fail(validation_result.get('message', 'Validation failed'), data={'validation_results': validation_result.get('validation_results', [])})
+                return OperationResult.fail(
+                    validation_result.get('message', 'Validation failed'),
+                    data={
+                        'errors': validation_result.get('errors', []),
+                        'validation_results': validation_result.get('validation_results', []),
+                    },
+                )
             
             # 3. Calculate financials
             financials = self.financial_processing.calculate_claim_financials(claim_data)
