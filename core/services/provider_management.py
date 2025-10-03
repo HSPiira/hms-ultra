@@ -17,7 +17,7 @@ from django.utils import timezone
 
 from core.models import (
     Hospital, HospitalBranch, HospitalDoctor, HospitalMedicine, 
-    HospitalService, HospitalLabTest, Medicine, Service, LabTest
+    HospitalService, HospitalLabTest, Medicine, Service, LabTest, YesNoChoices
 )
 from core.services.smart_api_service import SmartAPIServiceFactory
 
@@ -338,11 +338,14 @@ class ProviderServiceManager(IProviderServiceManager):
                 }
             
             # Create hospital service relationship
+            available_flag = pricing_data.get('available', True)
+            available_choice = YesNoChoices.YES if available_flag else YesNoChoices.NO
+            
             hospital_service = HospitalService.objects.create(
                 hospital_id=provider_id,
                 service_id=service_id,
                 amount=pricing_data.get('amount', Decimal('0')),
-                available=pricing_data.get('available', True),
+                available=available_choice,
                 effective_date=pricing_data.get('effective_date', timezone.now().date())
             )
             
@@ -376,8 +379,8 @@ class ProviderServiceManager(IProviderServiceManager):
                     'error': 'Service not found for this provider'
                 }
             
-            # Soft delete by setting available to False
-            hospital_service.available = False
+            # Soft delete by setting available to NO
+            hospital_service.available = YesNoChoices.NO
             hospital_service.save()
             
             return {
@@ -602,9 +605,13 @@ class ProviderManagementService:
         self.service_manager = service_manager
         self.lifecycle_manager = lifecycle_manager
     
-    def register_new_provider(self, provider_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Register new provider with complete workflow"""
+    def register_provider(self, provider_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Public API: Register provider (preferred name)"""
         return self.lifecycle_manager.register_provider(provider_data)
+    
+    def register_new_provider(self, provider_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Backward-compatible alias to register_provider"""
+        return self.register_provider(provider_data)
     
     def activate_provider(self, provider_id: str) -> Dict[str, Any]:
         """Activate provider"""

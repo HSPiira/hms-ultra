@@ -12,16 +12,21 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=False
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY_FILE=/run/secrets/django_secret_key
+      - DB_NAME_FILE=/run/secrets/postgres_db
+      - DB_USER_FILE=/run/secrets/postgres_user
+      - DB_PASSWORD_FILE=/run/secrets/postgres_password
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/1
       - EMAIL_HOST=${EMAIL_HOST}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+    secrets:
+      - django_secret_key
+      - postgres_db
+      - postgres_user
+      - postgres_password
     depends_on:
       - db
       - redis
@@ -31,10 +36,15 @@ services:
     image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../../init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB_FILE=/run/secrets/postgres_db
+      - POSTGRES_USER_FILE=/run/secrets/postgres_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -48,9 +58,10 @@ services:
   nginx:
     image: nginx:alpine
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - ../ssl:/etc/nginx/ssl
     ports:
       - "80:80"
       - "443:443"
@@ -65,13 +76,18 @@ services:
       - .:/app
     environment:
       - DEBUG=False
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY_FILE=/run/secrets/django_secret_key
+      - DB_NAME_FILE=/run/secrets/postgres_db
+      - DB_USER_FILE=/run/secrets/postgres_user
+      - DB_PASSWORD_FILE=/run/secrets/postgres_password
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/1
+    secrets:
+      - django_secret_key
+      - postgres_db
+      - postgres_user
+      - postgres_password
     depends_on:
       - db
       - redis
@@ -84,13 +100,18 @@ services:
       - .:/app
     environment:
       - DEBUG=False
-      - SECRET_KEY=${SECRET_KEY}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY_FILE=/run/secrets/django_secret_key
+      - DB_NAME_FILE=/run/secrets/postgres_db
+      - DB_USER_FILE=/run/secrets/postgres_user
+      - DB_PASSWORD_FILE=/run/secrets/postgres_password
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/1
+    secrets:
+      - django_secret_key
+      - postgres_db
+      - postgres_user
+      - postgres_password
     depends_on:
       - db
       - redis
@@ -100,3 +121,13 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+secrets:
+  postgres_db:
+    external: true
+  postgres_user:
+    external: true
+  postgres_password:
+    external: true
+  django_secret_key:
+    external: true

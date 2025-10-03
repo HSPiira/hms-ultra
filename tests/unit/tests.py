@@ -13,12 +13,12 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Claim, Hospital, Member, Company, Scheme, Service, Medicine, LabTest
-from .claim_workflow import ClaimWorkflowFactory
-from .audit_trail import AuditTrailFactory
-from .notification_system import NotificationServiceFactory
-from .provider_management import ProviderManagementFactory
-from .reporting_engine import ReportingEngineFactory
+from core.models import Claim, Hospital, Member, Company, Scheme, Service, Medicine, LabTest
+from core.services.claim_workflow import ClaimWorkflowFactory
+from core.services.audit_trail import AuditTrailFactory
+from core.services.notification_system import NotificationServiceFactory
+from core.services.provider_management import ProviderManagementFactory
+from core.services.reporting_engine import ReportingEngineFactory
 
 
 class CoreModuleTestCase(TestCase):

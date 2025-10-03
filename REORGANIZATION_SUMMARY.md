@@ -161,14 +161,21 @@ from core.permissions.permissions import CanViewAuditTrail
 
 ## Migration Commands
 
-To update imports automatically:
+To update imports safely:
 
 ```bash
-# Run the import update script
+# Use the provided import update script (RECOMMENDED)
 python scripts/maintenance/update_imports.py
 
-# Or manually update specific files
-find . -name "*.py" -exec sed -i 's/from core\./from core.services./g' {} \;
+# Manual fallback - ONLY for specific modules that moved:
+# Example: Only update imports for modules that were actually moved
+find . -name "*.py" -exec sed -i 's/from core\.claim_workflow/from core.services.claim_workflow/g' {} \;
+find . -name "*.py" -exec sed -i 's/from core\.audit_trail/from core.services.audit_trail/g' {} \;
+find . -name "*.py" -exec sed -i 's/from core\.notification_system/from core.services.notification_system/g' {} \;
+# ... (list only the specific modules that were moved)
+
+# WARNING: Do NOT use broad patterns like 'from core\.' as this will break
+# valid imports that should remain unchanged (e.g., 'from core.models')
 ```
 
 ## Maintenance

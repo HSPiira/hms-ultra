@@ -31,6 +31,7 @@ from core.services.audit_trail import AuditTrailFactory
 from core.services.notification_system import NotificationServiceFactory
 from core.services.provider_management import ProviderManagementFactory
 from core.services.reporting_engine import ReportingEngineFactory
+from core.services.reporting_engine import ReportType, ReportFormat
 from core.permissions.permissions import (
     CanApproveClaims, CanProcessPayments, CanViewAuditTrail, 
     CanManageProviders, CanGenerateReports, CanSendNotifications
@@ -461,11 +462,23 @@ def send_notification(request):
     """Send notification to specified recipient"""
     try:
         notification_service = NotificationServiceFactory.create_notification_service()
+        # Prepare parameters according to service signature: (recipient, subject, message, priority)
+        recipient = request.data.get('recipient')
+        message = request.data.get('message', '')
+        subject = request.data.get('subject')
+        notif_type = request.data.get('type')  # If provided, use as a subject prefix only
+        if not subject:
+            default_subject = (message[:50] if message else 'Notification')
+            subject = f"[{notif_type}] {default_subject}" if notif_type else default_subject
+        else:
+            subject = f"[{notif_type}] {subject}" if notif_type else subject
+        priority = request.data.get('priority', 'NORMAL')
+
         result = notification_service.send_notification(
-            recipient=request.data.get('recipient'),
-            message=request.data.get('message'),
-            notification_type=request.data.get('type', 'EMAIL'),
-            priority=request.data.get('priority', 'NORMAL')
+            recipient=recipient,
+            subject=subject,
+            message=message,
+            priority=priority
         )
         
         if result['success']:
@@ -707,22 +720,45 @@ def generate_report(request):
     """Generate a custom report"""
     try:
         reporting_service = ReportingEngineFactory.create_reporting_engine()
-        report_type = request.data.get('report_type')
+        report_type_raw = request.data.get('report_type')
         start_date = request.data.get('start_date')
         end_date = request.data.get('end_date')
-        format_type = request.data.get('format', 'CSV')
-        
-        result = reporting_service.generate_report(
-            report_type=report_type,
-            start_date=start_date,
-            end_date=end_date,
-            format_type=format_type
+        format_raw = request.data.get('format', 'CSV')
+
+        # Validate and convert enums
+        try:
+            report_type_enum = ReportType(report_type_raw)
+        except Exception:
+            return Response({
+                'success': False,
+                'error': f"Invalid report_type '{report_type_raw}'. Valid: {[e.value for e in ReportType]}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            format_enum = ReportFormat(format_raw)
+        except Exception:
+            return Response({
+                'success': False,
+                'error': f"Invalid format '{format_raw}'. Valid: {[e.value for e in ReportFormat]}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Generate report data
+        data = reporting_service.generate_report(
+            report_type_enum,
+            start_date,
+            end_date
         )
-        
-        if result['success']:
-            return Response(result, status=status.HTTP_200_OK)
+
+        if 'error' in data:
+            return Response({'success': False, 'error': data['error']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Export/serialize according to format
+        if format_enum == ReportFormat.JSON:
+            return Response({'success': True, 'report': data}, status=status.HTTP_200_OK)
         else:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            filename = f"{report_type_enum.value.lower()}_{start_date}_{end_date}"
+            export_path = reporting_service.export_report(data, format_enum, filename)
+            return Response({'success': True, 'export_path': export_path, 'format': format_enum.value}, status=status.HTTP_200_OK)
             
     except Exception:
         logger.exception("Error generating report")

@@ -5,6 +5,10 @@ Environment-specific settings for development
 
 from .settings import *
 
+# Ensure logs directory exists for FileHandler
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
 # Development-specific settings
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
@@ -44,7 +48,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'development.log',
+            'filename': str(LOGS_DIR / 'development.log'),
             'formatter': 'verbose',
         },
     },

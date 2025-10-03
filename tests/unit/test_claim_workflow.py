@@ -5,8 +5,8 @@ Test cases for claim workflow functionality
 from decimal import Decimal
 from datetime import date
 from django.test import TestCase
-from .tests import CoreModuleTestCase
-from .claim_workflow import ClaimWorkflowFactory
+from tests.unit.tests import CoreModuleTestCase
+from tests.unit.claim_workflow import ClaimWorkflowFactory
 
 
 class ClaimWorkflowTestCase(CoreModuleTestCase):
@@ -105,7 +105,7 @@ class ClaimWorkflowTestCase(CoreModuleTestCase):
         self.assertTrue(approve_result['success'])
         
         # Verify claim is approved
-        from .models import Claim
+        from core.models import Claim
         claim = Claim.objects.get(id=claim_id)
         self.assertEqual(claim.approved, 1, f"Claim should be approved (approved=1), but got approved={claim.approved}")
         

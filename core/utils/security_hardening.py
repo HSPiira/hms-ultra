@@ -179,7 +179,11 @@ class EncryptionManager(IEncryptionManager):
     """Manages encryption and hashing"""
     
     def __init__(self):
-        self.secret_key = getattr(settings, 'SECRET_KEY', 'default-secret-key')
+        self.secret_key = getattr(settings, 'SECRET_KEY', None)
+        if not self.secret_key:
+            raise RuntimeError(
+                'SECRET_KEY environment variable is required; refusing to initialize EncryptionManager with a missing/empty key'
+            )
     
     def encrypt_sensitive_data(self, data: str) -> str:
         """Encrypt sensitive data"""

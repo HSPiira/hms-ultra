@@ -217,7 +217,7 @@ class SchemeViewSet(viewsets.ModelViewSet):
     serializer_class = SchemeSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['scheme_name', 'scheme_code']
+    search_fields = ['scheme_name']
     ordering_fields = ['created_date', 'modified_date', 'scheme_name']
     ordering = ['-created_date']
 
@@ -239,7 +239,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
     serializer_class = CompanySerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['company_name', 'company_code']
+    search_fields = ['company_name']
     ordering_fields = ['created_date', 'modified_date', 'company_name']
     ordering = ['-created_date']
 
@@ -377,8 +377,8 @@ class MedicineViewSet(viewsets.ModelViewSet):
     serializer_class = MedicineSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['medicine_name', 'medicine_code']
-    ordering_fields = ['created_date', 'modified_date', 'medicine_name']
+    search_fields = ['medicinename', 'medicineid']
+    ordering_fields = ['created_date', 'modified_date', 'medicinename']
     ordering = ['-created_date']
 
 
@@ -422,7 +422,7 @@ class ClaimViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['claimform_number', 'invoice_number']
-    ordering_fields = ['created_date', 'modified_date', 'submission_date']
+    ordering_fields = ['created_date', 'modified_date', 'dateofsubmission']
     ordering = ['-created_date']
 
 

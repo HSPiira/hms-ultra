@@ -105,10 +105,18 @@ CREATE TABLE IF NOT EXISTS item_types (
 -- FOREIGN KEY CONSTRAINTS
 -- =============================================================================
 
--- Add foreign key constraint for staging_claims.upload_id
-ALTER TABLE staging_claims 
-ADD CONSTRAINT fk_staging_claims_upload 
-FOREIGN KEY (upload_id) REFERENCES uploads(id) ON DELETE SET NULL;
+-- Add foreign key constraint for staging_claims.upload_id (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'fk_staging_claims_upload'
+    ) THEN
+        ALTER TABLE staging_claims 
+        ADD CONSTRAINT fk_staging_claims_upload 
+        FOREIGN KEY (upload_id) REFERENCES uploads(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- =============================================================================
 -- INDEXES FOR PERFORMANCE

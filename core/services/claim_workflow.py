@@ -6,7 +6,7 @@ Implements SOLID principles for end-to-end claim processing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, date, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
 
@@ -161,7 +161,29 @@ class ClaimWorkflowValidator(IClaimWorkflowValidator):
         
         # Validate amount
         amount = claim_data.get('hospital_claimamount')
-        if amount is None or amount <= 0:
+        if amount is None:
+            return {
+                'valid': False,
+                'errors': ['Hospital claim amount is required']
+            }
+        
+        # Parse amount as Decimal to handle string inputs safely
+        try:
+            if isinstance(amount, str) and not amount.strip():
+                # Empty string is invalid
+                return {
+                    'valid': False,
+                    'errors': ['Hospital claim amount cannot be empty']
+                }
+            amount_decimal = Decimal(str(amount))
+        except (InvalidOperation, ValueError, TypeError):
+            return {
+                'valid': False,
+                'errors': ['Hospital claim amount must be a valid number']
+            }
+        
+        # Now safe to perform numeric comparison
+        if amount_decimal <= 0:
             return {
                 'valid': False,
                 'errors': ['Hospital claim amount must be greater than zero']

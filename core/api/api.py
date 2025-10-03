@@ -11,6 +11,12 @@ from core.models import Member, Scheme, Hospital, Company, CompanyType, CompanyB
 from core.utils.repositories import DjangoMemberRepository, DjangoSchemeRepository, DjangoHospitalRepository, DjangoCompanyRepository, DjangoCompanyTypeRepository, DjangoCompanyBranchRepository, DjangoPlanRepository, DjangoSchemePlanRepository, DjangoBenefitRepository, DjangoSchemeBenefitRepository, DjangoMemberDependantRepository, DjangoHospitalBranchRepository, DjangoHospitalDoctorRepository, DjangoHospitalMedicineRepository, DjangoHospitalServiceRepository, DjangoHospitalLabTestRepository, DjangoMedicineRepository, DjangoServiceRepository, DjangoLabTestRepository, DjangoDiagnosisRepository, DjangoClaimRepository, DjangoClaimDetailRepository, DjangoClaimPaymentRepository, DjangoBillingSessionRepository, DjangoDistrictRepository, DjangoFinancialPeriodRepository, DjangoApplicationUserRepository, DjangoApplicationModuleRepository, DjangoUserPermissionRepository
 # Services will be implemented later - using repositories directly for now
 
+# Attempt to import MemberService; provide a safe fallback if not available
+try:
+    from core.services.member_service import MemberService  # type: ignore
+except Exception:  # pragma: no cover
+    MemberService = None  # Fallback marker; MemberViewSet will handle None safely
+
 
 class MemberSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,7 +72,8 @@ class MemberViewSet(viewsets.ViewSet):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.repo = DjangoMemberRepository()
-        self.service = MemberService(self.repo)
+        # Use service if available; otherwise fall back to repository/ORM paths
+        self.service = MemberService(self.repo) if MemberService else None
 
     def list(self, request):
         search = request.query_params.get("search")
@@ -89,9 +96,13 @@ class MemberViewSet(viewsets.ViewSet):
             total = qs.count()
             data = MemberSerializer(qs[offset: offset + limit], many=True).data
             return Response({"count": total, "results": data})
-        items, total = self.service.list_members(search=search, limit=limit, offset=offset)
-        data = MemberSerializer(items, many=True).data
-        return Response({"count": total, "results": data})
+        if self.service:
+            items, total = self.service.list_members(search=search, limit=limit, offset=offset)
+            data = MemberSerializer(items, many=True).data
+            return Response({"count": total, "results": data})
+        # Fallback to repository when service layer is not available
+        items, total = self.repo.list(search=search, limit=limit, offset=offset)
+        return Response({"count": total, "results": MemberSerializer(items, many=True).data})
 
     def retrieve(self, request, pk: str = None):
         member = self.repo.get_by_id(pk)
@@ -102,42 +113,71 @@ class MemberViewSet(viewsets.ViewSet):
     def create(self, request):
         serializer = MemberSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        dto = MemberCreateDTO(
-            member_name=serializer.validated_data["member_name"],
-            company_id=str(serializer.validated_data["company"].id),
-            scheme_id=str(serializer.validated_data["scheme"].id),
-            employee_id=serializer.validated_data.get("employee_id", ""),
-            national_id=serializer.validated_data.get("national_id", ""),
-            gender=serializer.validated_data.get("gender", ""),
-            phone_mobile=serializer.validated_data.get("phone_mobile", ""),
-            email=serializer.validated_data.get("email", ""),
-            card_number=serializer.validated_data.get("card_number", ""),
-        )
-        member = self.service.create_member(dto)
+        if self.service:
+            dto = MemberCreateDTO(
+                member_name=serializer.validated_data["member_name"],
+                company_id=str(serializer.validated_data["company"].id),
+                scheme_id=str(serializer.validated_data["scheme"].id),
+                employee_id=serializer.validated_data.get("employee_id", ""),
+                national_id=serializer.validated_data.get("national_id", ""),
+                gender=serializer.validated_data.get("gender", ""),
+                phone_mobile=serializer.validated_data.get("phone_mobile", ""),
+                email=serializer.validated_data.get("email", ""),
+                card_number=serializer.validated_data.get("card_number", ""),
+            )
+            member = self.service.create_member(dto)
+            return Response(MemberSerializer(member).data, status=status.HTTP_201_CREATED)
+        # Fallback: create directly via ORM
+        member = Member.objects.create(**serializer.validated_data)
         return Response(MemberSerializer(member).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, pk: str = None):
         serializer = MemberSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        dto = MemberUpdateDTO(
-            member_name=serializer.validated_data.get("member_name"),
-            employee_id=serializer.validated_data.get("employee_id"),
-            national_id=serializer.validated_data.get("national_id"),
-            gender=serializer.validated_data.get("gender"),
-            phone_mobile=serializer.validated_data.get("phone_mobile"),
-            email=serializer.validated_data.get("email"),
-        )
-        member = self.service.update_member(pk, dto)
+        if self.service:
+            dto = MemberUpdateDTO(
+                member_name=serializer.validated_data.get("member_name"),
+                employee_id=serializer.validated_data.get("employee_id"),
+                national_id=serializer.validated_data.get("national_id"),
+                gender=serializer.validated_data.get("gender"),
+                phone_mobile=serializer.validated_data.get("phone_mobile"),
+                email=serializer.validated_data.get("email"),
+            )
+            member = self.service.update_member(pk, dto)
+            return Response(MemberSerializer(member).data)
+        # Fallback: update directly via ORM
+        member = self.repo.get_by_id(pk)
+        if not member:
+            return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        for k, v in serializer.validated_data.items():
+            setattr(member, k, v)
+        member.save()
         return Response(MemberSerializer(member).data)
 
     @action(detail=True, methods=["post"])
     def activate(self, request, pk: str = None):
-        member = self.service.activate_member(pk)
+        if self.service:
+            member = self.service.activate_member(pk)
+            return Response(MemberSerializer(member).data)
+        # Fallback: simple status toggle
+        member = self.repo.get_by_id(pk)
+        if not member:
+            return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        member.member_status = "ACTIVE"
+        member.save()
         return Response(MemberSerializer(member).data)
 
     @action(detail=True, methods=["post"])
     def deactivate(self, request, pk: str = None):
-        member = self.service.deactivate_member(pk)
+        if self.service:
+            member = self.service.deactivate_member(pk)
+            return Response(MemberSerializer(member).data)
+        # Fallback: simple status toggle
+        member = self.repo.get_by_id(pk)
+        if not member:
+            return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        member.member_status = "INACTIVE"
+        member.save()
         return Response(MemberSerializer(member).data)
 
 

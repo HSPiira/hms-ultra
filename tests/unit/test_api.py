@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Claim, Hospital, Member, Company, Service, Scheme
+from core.models import Claim, Hospital, Member, Company, Service, Scheme
 from .tests import CoreModuleTestCase
 
 

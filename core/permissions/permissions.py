@@ -188,21 +188,18 @@ class IsProviderStaffOrAdmin(permissions.BasePermission):
         try:
             # Check if user is staff of this hospital
             if hasattr(obj, 'staff'):
-                # If staff associations exist, check if user is staff
+                # If staff associations exist, allow only if active staff match
                 if obj.staff.exists():
                     return obj.staff.filter(user=request.user, is_active=True).exists()
-                else:
-                    # If no staff associations exist yet, allow authenticated users
-                    # This is a temporary fallback until staff associations are fully implemented
-                    return True
+                # Staff relation exists but empty: deny by default
+                return False
             
-            # Fallback: Check if user has provider_staff role (if implemented)
-            if hasattr(request.user, 'has_role'):
-                return request.user.has_role('provider_staff')
-            
-            # If no staff associations exist yet, allow authenticated users
-            # This is a temporary fallback until staff associations are fully implemented
-            return True
+            # No staff relation on object: allow only site staff or explicit provider_staff role
+            if request.user.is_staff:
+                return True
+            if hasattr(request.user, 'has_role') and request.user.has_role('provider_staff'):
+                return True
+            return False
             
         except (AttributeError, Exception):
             # If any error occurs, deny access for safety
