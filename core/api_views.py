@@ -14,10 +14,10 @@ from django.views import View
 import json
 import logging
 
-from .claim_workflow import ClaimWorkflowServiceFactory
-from .audit_trail import AuditTrailServiceFactory
+from .claim_workflow import ClaimWorkflowFactory
+from .audit_trail import AuditTrailFactory
 from .notification_system import NotificationServiceFactory
-from .provider_management import ProviderManagementServiceFactory
+from .provider_management import ProviderManagementFactory
 from .reporting_engine import ReportingEngineFactory
 from .permissions import (
     CanApproveClaims, CanProcessPayments, CanViewAuditTrail, 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def submit_claim(request):
     """Submit a new claim for processing"""
     try:
-        workflow_service = ClaimWorkflowServiceFactory.create_service()
+        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
         result = workflow_service.submit_claim(request.data)
         
         if result['success']:
@@ -59,7 +59,7 @@ def submit_claim(request):
 def approve_claim(request, claim_id):
     """Approve a submitted claim"""
     try:
-        workflow_service = ClaimWorkflowServiceFactory.create_service()
+        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
         approver_id = request.user.id
         result = workflow_service.approve_claim(claim_id, approver_id)
         
@@ -82,7 +82,7 @@ def approve_claim(request, claim_id):
 def reject_claim(request, claim_id):
     """Reject a submitted claim"""
     try:
-        workflow_service = ClaimWorkflowServiceFactory.create_service()
+        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
         rejector_id = request.user.id
         reason = request.data.get('reason', 'No reason provided')
         result = workflow_service.reject_claim(claim_id, reason, rejector_id)
@@ -106,7 +106,7 @@ def reject_claim(request, claim_id):
 def process_payment(request, claim_id):
     """Process payment for an approved claim"""
     try:
-        workflow_service = ClaimWorkflowServiceFactory.create_service()
+        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
         payment_data = request.data
         result = workflow_service.process_claim_payment(claim_id, payment_data)
         
@@ -129,7 +129,7 @@ def process_payment(request, claim_id):
 def get_claim_status(request, claim_id):
     """Get current status of a claim"""
     try:
-        workflow_service = ClaimWorkflowServiceFactory.create_service()
+        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
         result = workflow_service.get_claim_workflow_status(claim_id)
         
         if 'error' in result:
@@ -154,7 +154,7 @@ def get_claim_status(request, claim_id):
 def get_audit_trail(request):
     """Get audit trail for specified date range"""
     try:
-        audit_service = AuditTrailServiceFactory.create_service()
+        audit_service = AuditTrailFactory.create_audit_trail_service()
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         user_id = request.GET.get('user_id')
@@ -183,7 +183,7 @@ def get_audit_trail(request):
 def export_audit_trail(request):
     """Export audit trail to specified format"""
     try:
-        audit_service = AuditTrailServiceFactory.create_service()
+        audit_service = AuditTrailFactory.create_audit_trail_service()
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         format_type = request.GET.get('format', 'CSV')
@@ -213,7 +213,7 @@ def export_audit_trail(request):
 def send_notification(request):
     """Send notification to specified recipient"""
     try:
-        notification_service = NotificationServiceFactory.create_service()
+        notification_service = NotificationServiceFactory.create_notification_service()
         result = notification_service.send_notification(
             recipient=request.data.get('recipient'),
             message=request.data.get('message'),
@@ -244,7 +244,7 @@ def send_notification(request):
 def register_provider(request):
     """Register a new healthcare provider"""
     try:
-        provider_service = ProviderManagementServiceFactory.create_service()
+        provider_service = ProviderManagementFactory.create_provider_management_service()
         result = provider_service.register_provider(request.data)
         
         if result['success']:
@@ -266,7 +266,7 @@ def register_provider(request):
 def activate_provider(request, provider_id):
     """Activate a healthcare provider"""
     try:
-        provider_service = ProviderManagementServiceFactory.create_service()
+        provider_service = ProviderManagementFactory.create_provider_management_service()
         result = provider_service.activate_provider(provider_id)
         
         if result['success']:
@@ -288,7 +288,7 @@ def activate_provider(request, provider_id):
 def deactivate_provider(request, provider_id):
     """Deactivate a healthcare provider"""
     try:
-        provider_service = ProviderManagementServiceFactory.create_service()
+        provider_service = ProviderManagementFactory.create_provider_management_service()
         reason = request.data.get('reason', 'No reason provided')
         result = provider_service.deactivate_provider(provider_id, reason)
         
@@ -311,7 +311,7 @@ def deactivate_provider(request, provider_id):
 def get_provider_services(request, provider_id):
     """Get all services for a provider"""
     try:
-        provider_service = ProviderManagementServiceFactory.create_service()
+        provider_service = ProviderManagementFactory.create_provider_management_service()
         result = provider_service.get_provider_services(provider_id)
         
         return Response(result, status=status.HTTP_200_OK)
@@ -333,7 +333,7 @@ def get_provider_services(request, provider_id):
 def get_dashboard_metrics(request):
     """Get dashboard metrics and KPIs"""
     try:
-        reporting_service = ReportingEngineFactory.create_service()
+        reporting_service = ReportingEngineFactory.create_reporting_engine()
         result = reporting_service.get_dashboard_metrics()
         
         return Response(result, status=status.HTTP_200_OK)
@@ -351,7 +351,7 @@ def get_dashboard_metrics(request):
 def generate_report(request):
     """Generate a custom report"""
     try:
-        reporting_service = ReportingEngineFactory.create_service()
+        reporting_service = ReportingEngineFactory.create_reporting_engine()
         report_type = request.data.get('report_type')
         start_date = request.data.get('start_date')
         end_date = request.data.get('end_date')
@@ -382,6 +382,7 @@ def generate_report(request):
 # =============================================================================
 
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def health_check(request):
     """Health check endpoint for monitoring"""
     return Response({
