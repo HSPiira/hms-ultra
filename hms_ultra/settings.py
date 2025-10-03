@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_spectacular',
     'django_filters',
     'core',
 ]
@@ -131,8 +133,34 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 50,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# API Documentation Settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'HMS Ultra API',
+    'DESCRIPTION': 'Healthcare Management System Ultra - Comprehensive API for claim processing, provider management, and reporting',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/',
+    'SORT_OPERATIONS': False,
+    'ENUM_NAME_OVERRIDES': {
+        'ClaimWorkflowStatus': 'core.claim_workflow.ClaimWorkflowStatus',
+        'NotificationType': 'core.notification_system.NotificationType',
+        'AuditAction': 'core.audit_trail.AuditAction',
+    },
+    'TAGS': [
+        {'name': 'Claims', 'description': 'Claim workflow and processing endpoints'},
+        {'name': 'Providers', 'description': 'Healthcare provider management endpoints'},
+        {'name': 'Notifications', 'description': 'Notification and alert endpoints'},
+        {'name': 'Audit', 'description': 'Audit trail and logging endpoints'},
+        {'name': 'Reports', 'description': 'Reporting and analytics endpoints'},
+        {'name': 'Health', 'description': 'System health and monitoring endpoints'},
+    ]
 }
