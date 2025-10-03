@@ -20,6 +20,9 @@ DATABASES = {
 # Email settings for development (console backend)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+# Ensure logs directory exists before configuring logging
+(BASE_DIR / 'logs').mkdir(parents=True, exist_ok=True)
+
 # Logging configuration for development
 LOGGING = {
     'version': 1,

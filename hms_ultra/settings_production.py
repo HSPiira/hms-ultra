@@ -5,10 +5,15 @@ Environment-specific settings for production
 
 from .settings import *
 import os
+from pathlib import Path
 
 # Production-specific settings
 DEBUG = False
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
+
+# Log directory configuration
+LOG_DIR = Path(os.environ.get('LOG_DIR', '/var/log/hms_ultra'))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Database settings for production
 DATABASES = {
@@ -54,14 +59,14 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/hms_ultra/application.log',
+            'filename': str(LOG_DIR / 'application.log'),
             'maxBytes': 1024*1024*15,  # 15MB
             'backupCount': 10,
             'formatter': 'verbose',
         },
         'error_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/hms_ultra/error.log',
+            'filename': str(LOG_DIR / 'error.log'),
             'maxBytes': 1024*1024*15,  # 15MB
             'backupCount': 10,
             'formatter': 'verbose',
