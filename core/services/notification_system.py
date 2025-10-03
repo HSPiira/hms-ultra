@@ -246,6 +246,20 @@ class NotificationTemplate(INotificationTemplate):
             HMS Team
             """,
             
+            'claim_paid': """
+            Dear {member_name},
+            
+            Your claim #{claim_number} has been paid successfully.
+            
+            Paid Amount: {paid_amount}
+            Payment Date: {payment_date}
+            
+            Thank you for choosing our services.
+            
+            Best regards,
+            HMS Team
+            """,
+            
             'member_enrolled': """
             Dear {member_name},
             
@@ -562,6 +576,44 @@ class NotificationService:
             return {
                 'success': False,
                 'error': f'Validation or database error: {str(e)}'
+            }
+
+    def notify_claim_paid(self, claim_id: str) -> Dict[str, Any]:
+        """Notify stakeholders of claim payment"""
+        try:
+            claim = Claim.objects.get(id=claim_id)
+            member = claim.member
+            
+            context = {
+                'member_name': member.member_name,
+                'claim_number': claim.claimform_number,
+                'paid_amount': claim.member_claimamount or claim.hospital_claimamount,
+                'payment_date': timezone.now().date(),
+            }
+            
+            message = self.template_manager.render_template('claim_paid', context)
+            
+            return self.alert_manager.create_alert(
+                alert_type=AlertType.CLAIM_PAID,
+                recipient=member.email or 'no-email@example.com',
+                message=message,
+                priority=NotificationPriority.MEDIUM
+            )
+            
+        except Claim.DoesNotExist:
+            return {
+                'success': False,
+                'error': 'Claim not found'
+            }
+        except (ValueError, IntegrityError, ValidationError) as e:
+            return {
+                'success': False,
+                'error': f'Validation or database error: {str(e)}'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}'
             }
         except Exception as e:
             return {

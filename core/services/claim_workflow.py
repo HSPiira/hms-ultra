@@ -427,8 +427,7 @@ class ClaimWorkflowNotifier(IClaimWorkflowNotifier):
     def notify_claim_paid(self, claim_id: str) -> None:
         """Notify stakeholders of claim payment"""
         try:
-            # Use approved template as a placeholder or extend notification system with a paid notifier
-            self.notification_service.notify_claim_approved(claim_id)
+            self.notification_service.notify_claim_paid(claim_id)
         except Exception:
             logger.exception(f"Failed to send claim paid notification for {claim_id}")
 
