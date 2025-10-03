@@ -13,6 +13,7 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.core.cache import cache
 from django.contrib.auth.models import User
 
 logger = logging.getLogger(__name__)
@@ -250,25 +251,27 @@ class SecurityMonitor(ISecurityMonitor):
     """Monitors security events and suspicious activity"""
     
     def __init__(self):
-        self.suspicious_activities = []
-        self.security_events = []
+        # Persist via cache/Redis to avoid unbounded in-process growth
+        self.suspicious_activities = []  # kept for backward-compat in summary
+        self.security_events = []        # kept for backward-compat in summary
     
     def detect_suspicious_activity(self, user_id: str, activity: str) -> Dict[str, Any]:
         """Detect suspicious user activity"""
         suspicious_indicators = []
         
-        # Check for rapid successive actions
-        recent_activities = [
-            event for event in self.suspicious_activities
-            if event.get('user_id') == user_id
-            and event.get('timestamp') > timezone.now() - timedelta(minutes=5)
-        ]
-        
-        if len(recent_activities) > 10:
+        # Rapid successive actions using Redis counter with TTL
+        counter_key = f"sec:act:cnt:{user_id}"
+        try:
+            count = cache.incr(counter_key)
+        except Exception:
+            cache.set(counter_key, 1, timeout=300)
+            count = 1
+        cache.touch(counter_key, timeout=300)
+        if count > 10:
             suspicious_indicators.append("Rapid successive actions detected")
         
         # Check for unusual access patterns
-        if 'admin' in activity.lower() and user_id != 'admin':
+        if 'admin' in activity.lower():
             suspicious_indicators.append("Unauthorized admin access attempt")
         
         # Check for SQL injection attempts
@@ -278,13 +281,18 @@ class SecurityMonitor(ISecurityMonitor):
         
         # Log suspicious activity
         if suspicious_indicators:
-            self.suspicious_activities.append({
-                'user_id': user_id,
-                'activity': activity,
-                'indicators': suspicious_indicators,
-                'timestamp': timezone.now()
-            })
-            
+            # Persist brief record with TTL
+            ts = timezone.now().isoformat()
+            cache.set(
+                f"sec:act:event:{user_id}:{ts}",
+                {
+                    'user_id': user_id,
+                    'activity': activity,
+                    'indicators': suspicious_indicators,
+                    'timestamp': ts
+                },
+                timeout=600
+            )
             # Log security event
             self.log_security_event('SUSPICIOUS_ACTIVITY', {
                 'user_id': user_id,
@@ -306,23 +314,33 @@ class SecurityMonitor(ISecurityMonitor):
             'timestamp': timezone.now(),
             'severity': self._get_event_severity(event_type)
         }
-        
+        # cache persist for 1 hour; keep last N in memory for summaries
         self.security_events.append(event)
-        
-        # Log to Django logger
-        logger.warning(f"Security Event: {event_type} - {details}")
+        if len(self.security_events) > 1000:
+            self.security_events = self.security_events[-1000:]
+        cache.set(f"sec:event:{event_type}:{event['timestamp'].isoformat()}", event, timeout=3600)
+        # Map severity to logger method
+        sev = event['severity']
+        if sev == 'CRITICAL':
+            logger.critical(f"Security Event: {event_type} - {details}")
+        elif sev == 'ERROR':
+            logger.error(f"Security Event: {event_type} - {details}")
+        elif sev == 'HIGH' or sev == 'WARNING':
+            logger.warning(f"Security Event: {event_type} - {details}")
+        else:
+            logger.info(f"Security Event: {event_type} - {details}")
     
     def _get_event_severity(self, event_type: str) -> str:
         """Get severity level for event type"""
         severity_map = {
-            'SUSPICIOUS_ACTIVITY': 'HIGH',
+            'SUSPICIOUS_ACTIVITY': 'WARNING',
             'UNAUTHORIZED_ACCESS': 'CRITICAL',
             'PASSWORD_BREACH': 'CRITICAL',
-            'SQL_INJECTION': 'HIGH',
-            'XSS_ATTEMPT': 'HIGH',
-            'RATE_LIMIT_EXCEEDED': 'MEDIUM'
+            'SQL_INJECTION': 'ERROR',
+            'XSS_ATTEMPT': 'ERROR',
+            'RATE_LIMIT_EXCEEDED': 'WARNING'
         }
-        return severity_map.get(event_type, 'LOW')
+        return severity_map.get(event_type, 'INFO')
 
 
 # =============================================================================

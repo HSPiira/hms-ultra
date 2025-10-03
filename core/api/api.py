@@ -1,21 +1,16 @@
-from __future__ import annotations
+"""
+DEPRECATED MODULE
+=================
 
-from dataclasses import asdict
-from typing import Any
+This module previously contained duplicate CRUD ViewSets. To enforce a single
+source of truth and adhere to SOLID principles, all CRUD endpoints now live in
+`core/api/crud_views.py` and are exclusively registered in `core/api/urls.py`.
 
-from rest_framework import serializers, viewsets, status, permissions, filters
-from rest_framework.decorators import action
-from rest_framework.response import Response
+This file is intentionally kept minimal to prevent accidental usage. Add only
+specialized, non-CRUD API components here if absolutely necessary.
+"""
 
-from core.models import Member, Scheme, Hospital, Company, CompanyType, CompanyBranch, Plan, SchemePlan, Benefit, SchemeBenefit, MemberDependant, HospitalBranch, HospitalDoctor, HospitalMedicine, HospitalService, HospitalLabTest, Medicine, Service, LabTest, Diagnosis, Claim, ClaimDetail, ClaimPayment, BillingSession, District, FinancialPeriod, ApplicationUser, ApplicationModule, UserPermission
-from core.utils.repositories import DjangoMemberRepository, DjangoSchemeRepository, DjangoHospitalRepository, DjangoCompanyRepository, DjangoCompanyTypeRepository, DjangoCompanyBranchRepository, DjangoPlanRepository, DjangoSchemePlanRepository, DjangoBenefitRepository, DjangoSchemeBenefitRepository, DjangoMemberDependantRepository, DjangoHospitalBranchRepository, DjangoHospitalDoctorRepository, DjangoHospitalMedicineRepository, DjangoHospitalServiceRepository, DjangoHospitalLabTestRepository, DjangoMedicineRepository, DjangoServiceRepository, DjangoLabTestRepository, DjangoDiagnosisRepository, DjangoClaimRepository, DjangoClaimDetailRepository, DjangoClaimPaymentRepository, DjangoBillingSessionRepository, DjangoDistrictRepository, DjangoFinancialPeriodRepository, DjangoApplicationUserRepository, DjangoApplicationModuleRepository, DjangoUserPermissionRepository
-# Services will be implemented later - using repositories directly for now
-
-# Attempt to import MemberService; provide a safe fallback if not available
-try:
-    from core.services.member_service import MemberService  # type: ignore
-except Exception:  # pragma: no cover
-    MemberService = None  # Fallback marker; MemberViewSet will handle None safely
+# Intentionally empty: CRUD lives in `core/api/crud_views.py`.
 
 
 class MemberSerializer(serializers.ModelSerializer):
@@ -113,7 +108,7 @@ class MemberViewSet(viewsets.ViewSet):
     def create(self, request):
         serializer = MemberSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if self.service:
+        if self.service and MemberCreateDTO:
             dto = MemberCreateDTO(
                 member_name=serializer.validated_data["member_name"],
                 company_id=str(serializer.validated_data["company"].id),
@@ -134,7 +129,7 @@ class MemberViewSet(viewsets.ViewSet):
     def update(self, request, pk: str = None):
         serializer = MemberSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        if self.service:
+        if self.service and MemberUpdateDTO:
             dto = MemberUpdateDTO(
                 member_name=serializer.validated_data.get("member_name"),
                 employee_id=serializer.validated_data.get("employee_id"),

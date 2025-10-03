@@ -11,6 +11,7 @@ from django.db import transaction, IntegrityError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 import logging
+from core.utils.result import OperationResult
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class HMSBusinessLogicService:
     # =============================================================================
     
     @transaction.atomic
-    def process_claim_submission(self, claim_data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_claim_submission(self, claim_data: Dict[str, Any]) -> OperationResult:
         """
         Complete claim submission workflow
         1. Validate billing session
@@ -61,38 +62,30 @@ class HMSBusinessLogicService:
             if service_date:
                 session_validation = self.billing_session.validate_service_date(service_date)
                 if not session_validation['valid']:
-                    return {
-                        'success': False,
-                        'message': session_validation['message']
-                    }
+                    return OperationResult.fail(session_validation['message'], data={'stage': 'BILLING_SESSION'})
             
             # 2. Apply business rules
             validation_result = self.claim_service.validate_and_process_claim(claim_data)
             if not validation_result['success']:
-                return validation_result
+                return OperationResult.fail(
+                    validation_result.get('message', 'Validation failed'),
+                    data={
+                        'errors': validation_result.get('errors', []),
+                        'validation_results': validation_result.get('validation_results', []),
+                    },
+                )
             
             # 3. Calculate financials
             financials = self.financial_processing.calculate_claim_financials(claim_data)
             
             # 4. Create claim record (this would be handled by the API layer)
-            return {
-                'success': True,
-                'message': 'Claim processed successfully',
-                'financials': financials,
-                'validation_results': validation_result.get('validation_results', [])
-            }
+            return OperationResult.ok({'message': 'Claim processed successfully', 'financials': financials, 'validation_results': validation_result.get('validation_results', [])})
             
         except (ValueError, IntegrityError, ValidationError) as e:
-            return {
-                'success': False,
-                'message': f'Validation or database error: {str(e)}'
-            }
+            return OperationResult.fail(f'Validation or database error: {str(e)}', error_code='VALIDATION_ERROR')
         except Exception as e:
             logger.error(f"Unexpected error in claim processing: {str(e)}")
-            return {
-                'success': False,
-                'message': f'Unexpected error occurred: {str(e)}'
-            }
+            return OperationResult.fail(f'Unexpected error occurred: {str(e)}', error_code='UNEXPECTED_ERROR')
     
     def validate_claim_eligibility(self, claim_data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate claim eligibility without processing"""

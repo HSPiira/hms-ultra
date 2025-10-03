@@ -399,7 +399,7 @@ class ProviderServiceManager(IProviderServiceManager):
         try:
             services = HospitalService.objects.filter(
                 hospital_id=provider_id,
-                available=True
+                available=YesNoChoices.YES
             ).select_related('service')
             
             return [
@@ -407,7 +407,8 @@ class ProviderServiceManager(IProviderServiceManager):
                     'service_id': str(service.service_id),
                     'service_name': service.service.service_name,
                     'amount': service.amount,
-                    'available': service.available,
+                    'available': service.available == YesNoChoices.YES,
+                    'available_raw': service.available,
                     'effective_date': service.effective_date
                 }
                 for service in services

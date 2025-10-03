@@ -27,6 +27,8 @@ from .serializers import (
 )
 
 from core.services.claim_workflow import ClaimWorkflowFactory
+from core.services.business_logic_service import get_business_logic_service
+from core.utils.result import OperationResult
 from core.services.audit_trail import AuditTrailFactory
 from core.services.notification_system import NotificationServiceFactory
 from core.services.provider_management import ProviderManagementFactory
@@ -76,13 +78,12 @@ logger = logging.getLogger(__name__)
 def submit_claim(request):
     """Submit a new claim for processing"""
     try:
-        workflow_service = ClaimWorkflowFactory.create_claim_workflow_service()
-        result = workflow_service.submit_claim(request.data)
-        
-        if result['success']:
-            return Response(result, status=status.HTTP_201_CREATED)
-        else:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        # For end-to-end workflow, use business logic service boundary
+        bl = get_business_logic_service()
+        op: OperationResult = bl.process_claim_submission(request.data)
+        if op.success:
+            return Response(op.data or { 'success': True }, status=status.HTTP_201_CREATED)
+        return Response({ 'success': False, 'error': op.error, 'error_code': op.error_code, **(op.data or {}) }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception:
         logger.exception("Error submitting claim")
@@ -397,7 +398,17 @@ def export_audit_trail(request):
                 'error': 'start_date and end_date required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        result = audit_service.export_audit_trail(start_date, end_date, format_type)
+        # Validate and convert dates
+        try:
+            from datetime import date
+            start_date_obj = date.fromisoformat(start_date)
+            end_date_obj = date.fromisoformat(end_date)
+        except Exception:
+            return Response({
+                'error': 'Invalid date format. Use YYYY-MM-DD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        result = audit_service.export_audit_trail(start_date_obj, end_date_obj, format_type)
         
         if result['success']:
             return Response({
@@ -720,34 +731,38 @@ def generate_report(request):
     """Generate a custom report"""
     try:
         reporting_service = ReportingEngineFactory.create_reporting_engine()
-        report_type_raw = request.data.get('report_type')
-        start_date = request.data.get('start_date')
-        end_date = request.data.get('end_date')
-        format_raw = request.data.get('format', 'CSV')
+        # Validate payload via serializer
+        serializer = ReportGenerationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        v = serializer.validated_data
 
-        # Validate and convert enums
+        # Map serializer choices to enums
+        # Expect serializer to emit canonical strings like 'CLAIMS_SUMMARY', 'CSV', and date objects
+        report_type_value = v.get('report_type')
+        format_value = v.get('format_type', 'CSV')
+        start_date = v.get('start_date')
+        end_date = v.get('end_date')
+
+        report_type_map = {
+            'CLAIMS': ReportType.CLAIMS_SUMMARY,
+            'MEMBERS': ReportType.MEMBER_ANALYTICS,
+            'PROVIDERS': ReportType.PROVIDER_ANALYTICS,
+            'FINANCIAL': ReportType.FINANCIAL_SUMMARY,
+        }
         try:
-            report_type_enum = ReportType(report_type_raw)
-        except Exception:
-            return Response({
-                'success': False,
-                'error': f"Invalid report_type '{report_type_raw}'. Valid: {[e.value for e in ReportType]}"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
+            report_type_enum = report_type_map[report_type_value]
+        except KeyError:
+            return Response(
+                {'success': False, 'error': f"Invalid report_type '{report_type_value}'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
-            format_enum = ReportFormat(format_raw)
+            format_enum = ReportFormat(format_value)
         except Exception:
-            return Response({
-                'success': False,
-                'error': f"Invalid format '{format_raw}'. Valid: {[e.value for e in ReportFormat]}"
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'success': False, 'error': f"Invalid format '{format_value}'"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Generate report data
-        data = reporting_service.generate_report(
-            report_type_enum,
-            start_date,
-            end_date
-        )
+        # Generate report data using date objects
+        data = reporting_service.generate_report(report_type_enum, start_date, end_date)
 
         if 'error' in data:
             return Response({'success': False, 'error': data['error']}, status=status.HTTP_400_BAD_REQUEST)

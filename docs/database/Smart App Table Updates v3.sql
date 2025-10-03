@@ -247,12 +247,18 @@ INSERT INTO staging_claims (claim_number, member_id, hospital_id, service_date, 
 ('CLM-2024-003', 'MEM-003', 'HOSP-001', '2024-01-17', 850.75, 'COMPLETED')
 ON CONFLICT (claim_number) DO NOTHING;
 
--- Insert sample uploads
-INSERT INTO uploads (filename, original_filename, file_size, file_type, upload_path, upload_status, uploaded_by) VALUES
-('claim_001.pdf', 'claim_001.pdf', 1024000, 'application/pdf', '/uploads/claims/claim_001.pdf', 'COMPLETED', 'admin'),
-('claim_002.pdf', 'claim_002.pdf', 2048000, 'application/pdf', '/uploads/claims/claim_002.pdf', 'PROCESSING', 'user1'),
-('claim_003.pdf', 'claim_003.pdf', 1536000, 'application/pdf', '/uploads/claims/claim_003.pdf', 'PENDING', 'user2')
-ON CONFLICT DO NOTHING;
+-- Insert sample uploads idempotently (guard per filename)
+INSERT INTO uploads (filename, original_filename, file_size, file_type, upload_path, upload_status, uploaded_by)
+SELECT 'claim_001.pdf', 'claim_001.pdf', 1024000, 'application/pdf', '/uploads/claims/claim_001.pdf', 'COMPLETED', 'admin'
+WHERE NOT EXISTS (SELECT 1 FROM uploads WHERE filename = 'claim_001.pdf');
+
+INSERT INTO uploads (filename, original_filename, file_size, file_type, upload_path, upload_status, uploaded_by)
+SELECT 'claim_002.pdf', 'claim_002.pdf', 2048000, 'application/pdf', '/uploads/claims/claim_002.pdf', 'PROCESSING', 'user1'
+WHERE NOT EXISTS (SELECT 1 FROM uploads WHERE filename = 'claim_002.pdf');
+
+INSERT INTO uploads (filename, original_filename, file_size, file_type, upload_path, upload_status, uploaded_by)
+SELECT 'claim_003.pdf', 'claim_003.pdf', 1536000, 'application/pdf', '/uploads/claims/claim_003.pdf', 'PENDING', 'user2'
+WHERE NOT EXISTS (SELECT 1 FROM uploads WHERE filename = 'claim_003.pdf');
 
 -- =============================================================================
 -- COMMENTS AND DOCUMENTATION

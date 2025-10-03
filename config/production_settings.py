@@ -9,14 +9,30 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+def get_secret(name: str) -> str:
+    """Read secret from NAME_FILE if set, else from env NAME.
+    Raises RuntimeError if missing/empty.
+    """
+    file_var = f"{name}_FILE"
+    path = os.environ.get(file_var)
+    if path:
+        try:
+            with open(path, 'r') as f:
+                value = f.read().strip()
+        except Exception as e:
+            raise RuntimeError(f"Failed to read secret file for {name}: {path}") from e
+    else:
+        value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Required secret {name} is missing")
+    return value
+
 # Ensure logs directory exists for FileHandler
 LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY environment variable is required for production")
+SECRET_KEY = get_secret('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -72,23 +88,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'hms_ultra.wsgi.application'
 
 # Database
-try:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ['DB_NAME'],
-            'USER': os.environ['DB_USER'],
-            'PASSWORD': os.environ['DB_PASSWORD'],
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
-            'OPTIONS': {
-                'sslmode': 'require',
-            },
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': get_secret('DB_NAME'),
+        'USER': get_secret('DB_USER'),
+        'PASSWORD': get_secret('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
-except KeyError as e:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured(f"Database environment variable {e} is required for production")
+}
 
 # Cache Configuration
 CACHES = {
@@ -203,7 +215,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Security Settings
-SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000
@@ -278,14 +289,10 @@ EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
 
-# Email credentials - require environment variables
-try:
-    EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-    EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
-    DEFAULT_FROM_EMAIL = os.environ['DEFAULT_FROM_EMAIL']
-except KeyError as e:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured(f"Email environment variable {e} is required for production")
+# Email credentials - require environment variables (support *_FILE)
+EMAIL_HOST_USER = get_secret('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = get_secret('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = get_secret('DEFAULT_FROM_EMAIL')
 
 # Smart API Configuration
 SMART_API_BASE_URL = os.environ.get('SMART_API_BASE_URL', 'http://localhost:8090')
