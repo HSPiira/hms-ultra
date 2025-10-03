@@ -12,6 +12,7 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.production_settings
       - SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DB_NAME_FILE=/run/secrets/postgres_db
       - DB_USER_FILE=/run/secrets/postgres_user
@@ -76,6 +77,7 @@ services:
       - .:/app
     environment:
       - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.production_settings
       - SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DB_NAME_FILE=/run/secrets/postgres_db
       - DB_USER_FILE=/run/secrets/postgres_user
@@ -100,6 +102,7 @@ services:
       - .:/app
     environment:
       - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.production_settings
       - SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DB_NAME_FILE=/run/secrets/postgres_db
       - DB_USER_FILE=/run/secrets/postgres_user
